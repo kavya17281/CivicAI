@@ -30,18 +30,3 @@ def root():
 def health_check():
     return {"status": "ok"}
 
-
-@app.get("/protected")
-def protected_route(current_user: dict = Depends(get_current_user)):
-    return {
-        "message": "You are authenticated",
-        "user": current_user
-    }
-
-
-@app.get("/authority-only")
-def authority_only_route(current_user: dict = Depends(require_authority)):
-    return {
-        "message": "You are authority",
-        "user": current_user
-    }

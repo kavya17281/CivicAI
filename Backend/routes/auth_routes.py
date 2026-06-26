@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from google.cloud.firestore import SERVER_TIMESTAMP
 
-from Backend.auth import get_verified_firebase_user
+from Backend.auth import get_verified_firebase_user, get_current_user
 from Backend.firebase_service import db
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
@@ -46,10 +46,16 @@ def create_profile(
     firebase_user: dict = Depends(get_verified_firebase_user)
 ):
     if request.city not in ALLOWED_CITIES:
-        raise HTTPException(status_code=400, detail="Only Roorkee is supported currently")
+        raise HTTPException(
+            status_code=400,
+            detail="Only Roorkee is supported currently"
+        )
 
     if request.area not in ALLOWED_AREAS:
-        raise HTTPException(status_code=400, detail="Invalid area selected")
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid area selected"
+        )
 
     uid = firebase_user["uid"]
     email = firebase_user["email"]
@@ -76,4 +82,13 @@ def create_profile(
             "city": request.city,
             "area": request.area
         }
+    }
+
+
+@router.get("/me")
+def get_me(
+    current_user: dict = Depends(get_current_user)
+):
+    return {
+        "user": current_user
     }

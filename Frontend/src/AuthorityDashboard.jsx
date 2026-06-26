@@ -33,7 +33,7 @@ export default function AuthorityDashboard() {
     async function fetchAuthorityComplaints() {
         const token = await getToken();
 
-        const response = await fetch("http://127.0.0.1:8000/authority/complaints", {
+        const response = await fetch(`${API_BASE_URL}/authority/complaints`, {
             headers: {
                 Authorization: `Bearer ${token}`
             }
@@ -51,7 +51,7 @@ export default function AuthorityDashboard() {
     async function fetchDashboardStats() {
         const token = await getToken();
 
-        const response = await fetch("http://127.0.0.1:8000/authority/dashboard", {
+        const response = await fetch(`${API_BASE_URL}/authority/dashboard`, {
             headers: {
                 Authorization: `Bearer ${token}`
             }
@@ -93,7 +93,7 @@ export default function AuthorityDashboard() {
             const token = await getToken();
 
             const response = await fetch(
-                `http://127.0.0.1:8000/authority/complaints/${complaintId}/status`,
+                `${API_BASE_URL}/authority/complaints/${complaintId}/status`,
                 {
                     method: "PATCH",
                     headers: {

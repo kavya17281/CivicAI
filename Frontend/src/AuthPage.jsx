@@ -5,6 +5,8 @@ import {
 } from "firebase/auth";
 import { auth } from "./firebase";
 
+const API_BASE_URL = import.meta.env.VITE_BACKEND_URL;
+
 const AREAS = [
     "Civil Lines",
     "Main Market",
@@ -41,6 +43,8 @@ export default function AuthPage({ onLogin }) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
+    const isSignup = mode === "signup";
+
     async function handleSignup(e) {
         e.preventDefault();
 
@@ -57,7 +61,7 @@ export default function AuthPage({ onLogin }) {
             const user = userCredential.user;
             const token = await user.getIdToken(true);
 
-            const response = await fetch("http://127.0.0.1:8000/auth/create-profile", {
+            const response = await fetch(`${API_BASE_URL}/auth/create-profile`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -105,7 +109,7 @@ export default function AuthPage({ onLogin }) {
             const user = userCredential.user;
             const token = await user.getIdToken(true);
 
-            const response = await fetch("http://127.0.0.1:8000/protected", {
+            const response = await fetch(`${API_BASE_URL}/auth/me`, {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }
@@ -132,99 +136,123 @@ export default function AuthPage({ onLogin }) {
 
     function switchMode() {
         setError("");
-        setMode(mode === "login" ? "signup" : "login");
+        setMode(isSignup ? "login" : "signup");
     }
 
-    const isSignup = mode === "signup";
-
     return (
-        <div style={{ padding: "30px", maxWidth: "420px", margin: "40px auto" }}>
-            <h1>CivicAI Roorkee</h1>
+        <div className="auth-page">
+            <div className="auth-card">
+                <div className="auth-header">
+                    <h1>CivicAI Roorkee</h1>
+                    <p>
+                        Report, track, and manage civic issues in your locality.
+                    </p>
+                </div>
 
-            <h2>
-                {isSignup ? "Create Account" : "Login"}
-            </h2>
+                <div className="auth-tabs">
+                    <button
+                        className={!isSignup ? "auth-tab-active" : ""}
+                        onClick={() => {
+                            setError("");
+                            setMode("login");
+                        }}
+                        type="button"
+                    >
+                        Login
+                    </button>
 
-            <form onSubmit={isSignup ? handleSignup : handleLogin}>
-                {isSignup && (
-                    <>
-                        <input
-                            placeholder="Name"
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            required
-                        />
+                    <button
+                        className={isSignup ? "auth-tab-active" : ""}
+                        onClick={() => {
+                            setError("");
+                            setMode("signup");
+                        }}
+                        type="button"
+                    >
+                        Signup
+                    </button>
+                </div>
 
-                        <br /><br />
+                <form
+                    className="auth-form"
+                    onSubmit={isSignup ? handleSignup : handleLogin}
+                >
+                    {isSignup && (
+                        <>
+                            <label>Name</label>
+                            <input
+                                placeholder="Enter your name"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                required
+                            />
 
-                        <input
-                            placeholder="City"
-                            value={city}
-                            onChange={(e) => setCity(e.target.value)}
-                            required
-                            disabled
-                        />
+                            <label>City</label>
+                            <input
+                                value={city}
+                                onChange={(e) => setCity(e.target.value)}
+                                required
+                                disabled
+                            />
 
-                        <br /><br />
+                            <label>Area</label>
+                            <select
+                                value={area}
+                                onChange={(e) => setArea(e.target.value)}
+                                required
+                            >
+                                {AREAS.map((item) => (
+                                    <option key={item} value={item}>
+                                        {item}
+                                    </option>
+                                ))}
+                            </select>
+                        </>
+                    )}
 
-                        <select
-                            value={area}
-                            onChange={(e) => setArea(e.target.value)}
-                            required
-                        >
-                            {AREAS.map((item) => (
-                                <option key={item} value={item}>
-                                    {item}
-                                </option>
-                            ))}
-                        </select>
+                    <label>Email</label>
+                    <input
+                        placeholder="Enter your email"
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                    />
 
-                        <br /><br />
-                    </>
-                )}
+                    <label>Password</label>
+                    <input
+                        placeholder="Enter your password"
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                    />
 
-                <input
-                    placeholder="Email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                />
+                    {error && (
+                        <p className="auth-error">
+                            {error}
+                        </p>
+                    )}
 
-                <br /><br />
+                    <button className="auth-submit" type="submit" disabled={loading}>
+                        {loading
+                            ? "Please wait..."
+                            : isSignup
+                                ? "Create Account"
+                                : "Login"}
+                    </button>
+                </form>
 
-                <input
-                    placeholder="Password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                />
+                <p className="auth-switch-text">
+                    {isSignup
+                        ? "Already have an account?"
+                        : "New to CivicAI?"}
 
-                <br /><br />
-
-                <button type="submit" disabled={loading}>
-                    {loading
-                        ? "Please wait..."
-                        : isSignup
-                            ? "Signup"
-                            : "Login"}
-                </button>
-            </form>
-
-            {error && (
-                <p style={{ color: "red" }}>
-                    {error}
+                    <button onClick={switchMode} type="button">
+                        {isSignup ? "Login" : "Create account"}
+                    </button>
                 </p>
-            )}
-
-            <br />
-
-            <button onClick={switchMode}>
-                {isSignup
-                    ? "Already have an account? Login"
-                    : "New user? Create account"}
-            </button>
+            </div>
         </div>
     );
 }
