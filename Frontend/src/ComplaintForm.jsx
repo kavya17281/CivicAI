@@ -1,73 +1,46 @@
 import { useState } from "react";
 import { auth } from "./firebase";
 
-const AREAS = [
-    "Civil Lines",
-    "Main Market",
-    "Railway Road",
-    "Bus Stand Area",
-    "IIT Roorkee Campus",
-    "Shivaji Colony",
-    "Ganeshpur",
-    "Ram Nagar",
-    "Adarsh Nagar",
-    "Malviya Chowk",
-    "Prem Mandir Road",
-    "Canal Road",
-    "Saket Colony",
-    "Bharat Nagar",
-    "Purani Tehsil",
-    "New Haridwar Road",
-    "Sot Mohalla",
-    "Subhash Nagar",
-    "Dhandera",
-    "Other"
-];
-
-export default function ComplaintForm() {
-    const [title, setTitle] = useState("");
-    const [description, setDescription] = useState("");
-    const [city, setCity] = useState("Roorkee");
-    const [area, setArea] = useState(AREAS[0]);
-    const [address, setAddress] = useState("");
+export default function ComplaintForm({ onComplaintCreated }) {
+    const [complaintText, setComplaintText] = useState("");
     const [images, setImages] = useState([]);
 
     const [loading, setLoading] = useState(false);
-    const [output, setOutput] = useState("");
+    const [message, setMessage] = useState("");
 
     async function submitComplaint(e) {
         e.preventDefault();
 
+        if (complaintText.trim().length < 15) {
+            setMessage("Please describe the civic issue and mention a specific address or landmark.");
+            return;
+        }
+
+        if (images.length === 0) {
+            setMessage("Please upload at least one image.");
+            return;
+        }
+
+        if (images.length > 5) {
+            setMessage("You can upload at most 5 images.");
+            return;
+        }
+
         try {
             setLoading(true);
-            setOutput("");
+            setMessage("");
 
             const user = auth.currentUser;
 
             if (!user) {
-                setOutput("Please login first.");
-                return;
-            }
-
-            if (images.length === 0) {
-                setOutput("Please upload at least one image.");
-                return;
-            }
-
-            if (images.length > 5) {
-                setOutput("You can upload at most 5 images.");
+                setMessage("Please login first.");
                 return;
             }
 
             const token = await user.getIdToken(true);
 
             const formData = new FormData();
-
-            formData.append("title", title);
-            formData.append("description", description);
-            formData.append("city", city);
-            formData.append("area", area);
-            formData.append("address", address);
+            formData.append("complaintText", complaintText);
 
             images.forEach((image) => {
                 formData.append("images", image);
@@ -84,22 +57,26 @@ export default function ComplaintForm() {
             const data = await response.json();
 
             if (!response.ok) {
-                setOutput(JSON.stringify(data, null, 2));
+                setMessage(data.detail || "Complaint submission failed");
                 return;
             }
 
-            setOutput(JSON.stringify(data, null, 2));
-
-            setTitle("");
-            setDescription("");
-            setCity("Roorkee");
-            setArea(AREAS[0]);
-            setAddress("");
+            setMessage("Complaint submitted successfully.");
+            setComplaintText("");
             setImages([]);
+
+            const fileInput = document.getElementById("complaint-images-input");
+            if (fileInput) {
+                fileInput.value = "";
+            }
+
+            if (onComplaintCreated) {
+                onComplaintCreated(data.complaint);
+            }
         }
 
         catch (error) {
-            setOutput(error.message);
+            setMessage(error.message);
         }
 
         finally {
@@ -108,77 +85,43 @@ export default function ComplaintForm() {
     }
 
     return (
-        <div style={{ padding: "20px", border: "1px solid #ccc", marginTop: "20px" }}>
-            <h2>Submit Complaint</h2>
+        <div className="complaint-input-box">
+            {message && (
+                <p className="form-message">
+                    {message}
+                </p>
+            )}
 
-            <form onSubmit={submitComplaint}>
-                <input
-                    placeholder="Title"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    required
-                />
+            {images.length > 0 && (
+                <p className="selected-images">
+                    {images.length} image(s) selected
+                </p>
+            )}
 
-                <br /><br />
+            <form onSubmit={submitComplaint} className="complaint-form">
+                <label className="upload-button" title="Upload images">
+                    +
+                    <input
+                        id="complaint-images-input"
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        hidden
+                        onChange={(e) => setImages(Array.from(e.target.files))}
+                    />
+                </label>
 
                 <textarea
-                    placeholder="Description"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    required
+                    placeholder="Describe the issue and mention the exact address or landmark..."
+                    value={complaintText}
+                    onChange={(e) => setComplaintText(e.target.value)}
+                    rows={2}
                 />
-
-                <br /><br />
-
-                <input
-                    placeholder="City"
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                    required
-                />
-
-                <br /><br />
-
-                <select
-                    value={area}
-                    onChange={(e) => setArea(e.target.value)}
-                    required
-                >
-                    {AREAS.map((item) => (
-                        <option key={item} value={item}>
-                            {item}
-                        </option>
-                    ))}
-                </select>
-
-                <br /><br />
-
-                <input
-                    placeholder="Specific address / landmark"
-                    value={address}
-                    onChange={(e) => setAddress(e.target.value)}
-                />
-
-                <br /><br />
-
-                <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={(e) => setImages(Array.from(e.target.files))}
-                    required
-                />
-
-                <p>
-                    Selected images: {images.length}
-                </p>
 
                 <button type="submit" disabled={loading}>
-                    {loading ? "Submitting..." : "Submit Complaint"}
+                    {loading ? "..." : "Send"}
                 </button>
             </form>
-
-            <pre>{output}</pre>
         </div>
     );
 }

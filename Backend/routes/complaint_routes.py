@@ -15,6 +15,7 @@ ALLOWED_CATEGORIES = {
     "streetlight_issue",
     "waste_management",
     "public_safety",
+    "drainage_issue",
     "other"
 }
 
@@ -25,32 +26,51 @@ ALLOWED_SEVERITIES = {
     "critical"
 }
 
+ALLOWED_STATUSES = {
+    "reported",
+    "in_progress",
+    "resolved",
+    "rejected"
+}
+
 
 @router.post("/")
 async def create_complaint(
-    title: str = Form(...),
-    description: str = Form(...),
-    city: str = Form(...),
-    area: str = Form(...),
-    address: str = Form(""),
+    complaintText: str = Form(...),
     images: list[UploadFile] = File(...),
     current_user: dict = Depends(get_current_user)
 ):
+    if len(complaintText.strip()) < 15:
+        raise HTTPException(
+            status_code=400,
+            detail="Please describe the issue and mention a specific address or landmark."
+        )
+
     if len(images) > 5:
         raise HTTPException(
             status_code=400,
             detail="You can upload at most 5 images"
         )
 
+    city = current_user.get("city", "Roorkee")
+    area = current_user.get("area")
+
+    if not area:
+        raise HTTPException(
+            status_code=400,
+            detail="User area not found. Please complete your profile."
+        )
+
     image_urls, images_data = await upload_multiple_images_to_imgbb(images)
 
     ai_result = analyze_complaint_with_gemini(
         images_data=images_data,
-        title=title,
-        description=description,
+        complaint_text=complaintText,
         city=city,
         area=area
     )
+
+    is_valid_complaint = ai_result.get("is_valid_complaint", False)
 
     category = ai_result.get("category", "other")
     severity = ai_result.get("severity", "medium")
@@ -71,29 +91,33 @@ async def create_complaint(
 
     icon_image_url = image_urls[icon_image_index]
 
+    status = "reported" if is_valid_complaint else "rejected"
+
     complaint_data = {
         "userId": current_user["uid"],
         "userName": current_user["name"],
         "userEmail": current_user["email"],
 
-        "title": title,
-        "description": description,
-
         "city": city,
         "area": area,
-        "address": address,
+
+        "complaintText": complaintText,
+
+        "title": ai_result.get("title", "Civic complaint"),
+        "specificAddress": ai_result.get("specific_address", "Not specified"),
 
         "imageUrls": image_urls,
         "iconImageUrl": icon_image_url,
 
-        "isCivicIssue": ai_result.get("is_civic_issue", False),
+        "isValidComplaint": is_valid_complaint,
+        "rejectionReason": ai_result.get("rejection_reason", ""),
+
         "category": category,
         "severity": severity,
         "aiSummary": ai_result.get("summary", ""),
         "aiConfidence": ai_result.get("confidence", 0),
 
-        "status": "reported",
-        "verificationCount": 0,
+        "status": status,
 
         "createdAt": SERVER_TIMESTAMP,
         "updatedAt": SERVER_TIMESTAMP
@@ -120,6 +144,65 @@ def get_my_complaints(
     docs = (
         db.collection("complaints")
         .where("userId", "==", current_user["uid"])
+        .stream()
+    )
+
+    complaints = []
+
+    for doc in docs:
+        data = doc.to_dict()
+        data["id"] = doc.id
+
+        if data.get("createdAt"):
+            data["createdAt"] = data["createdAt"].isoformat()
+
+        if data.get("updatedAt"):
+            data["updatedAt"] = data["updatedAt"].isoformat()
+
+        complaints.append(data)
+
+    return {
+        "complaints": complaints
+    }
+
+
+@router.get("/area")
+def get_area_complaints(
+    current_user: dict = Depends(get_current_user)
+):
+    docs = (
+        db.collection("complaints")
+        .where("city", "==", current_user["city"])
+        .where("area", "==", current_user["area"])
+        .stream()
+    )
+
+    complaints = []
+
+    for doc in docs:
+        data = doc.to_dict()
+        data["id"] = doc.id
+
+        if data.get("createdAt"):
+            data["createdAt"] = data["createdAt"].isoformat()
+
+        if data.get("updatedAt"):
+            data["updatedAt"] = data["updatedAt"].isoformat()
+
+        complaints.append(data)
+
+    return {
+        "complaints": complaints
+    }
+
+
+@router.get("/city")
+def get_city_complaints(
+    current_user: dict = Depends(get_current_user)
+):
+    docs = (
+        db.collection("complaints")
+        .where("city", "==", current_user["city"])
         .stream()
     )
 

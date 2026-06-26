@@ -40,7 +40,9 @@ def get_current_user(
         "uid": uid,
         "email": firebase_user.get("email"),
         "name": user_data.get("name"),
-        "role": user_data.get("role")
+        "role": user_data.get("role"),
+        "city": user_data.get("city"),
+        "area": user_data.get("area")
     }
 
 

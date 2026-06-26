@@ -108,7 +108,7 @@ export default function UserDashboard() {
                         )}
 
                         <p>
-                            <b>Description:</b> {complaint.description}
+                            <b>Complaint Text:</b> {complaint.complaintText}
                         </p>
 
                         <p>

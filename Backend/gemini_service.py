@@ -14,8 +14,7 @@ client = genai.Client(api_key=GEMINI_API_KEY)
 
 def analyze_complaint_with_gemini(
     images_data: list,
-    title: str,
-    description: str,
+    complaint_text: str,
     city: str,
     area: str
 ):
@@ -26,24 +25,29 @@ def analyze_complaint_with_gemini(
         )
 
     prompt = f"""
-You are an AI assistant for CivicAI, a civic issue reporting platform.
+You are an AI assistant for CivicAI Roorkee, a civic issue reporting platform.
 
-A user has submitted a civic complaint with multiple images.
-
+The user belongs to:
 City: {city}
-Area/Locality: {area}
-Title: {title}
-Description: {description}
+Registered Area: {area}
 
-Analyze all uploaded images and the complaint text.
+The user complaint text is:
+{complaint_text}
+
+The user also uploaded one or more images.
+
+Analyze the text and all images. Extract structured information for the civic authority.
 
 Return ONLY valid JSON in this exact format:
 
 {{
-  "is_civic_issue": true,
+  "is_valid_complaint": true,
+  "rejection_reason": "",
+  "title": "short generated complaint title",
   "category": "road_damage",
   "severity": "medium",
-  "summary": "short summary of the issue",
+  "summary": "short AI summary of the civic issue",
+  "specific_address": "specific landmark or address extracted from text",
   "confidence": 0.85,
   "icon_image_index": 0
 }}
@@ -54,6 +58,7 @@ Allowed categories:
 - streetlight_issue
 - waste_management
 - public_safety
+- drainage_issue
 - other
 
 Allowed severity values:
@@ -63,14 +68,15 @@ Allowed severity values:
 - critical
 
 Rules:
-- is_civic_issue must be true if the complaint is actually related to a civic/public issue.
-- is_civic_issue must be false if the images/text are irrelevant, fake, random, personal, or not civic-related.
-- category must be one of the allowed categories.
-- severity must be one of the allowed severity values.
+- is_valid_complaint must be true only if the complaint is about a real civic/public issue.
+- Mark is_valid_complaint false if the complaint is spam, random, joke, personal issue, irrelevant image, fictional content, or not related to civic infrastructure/public services.
+- If invalid, set category as "other", severity as "low", title as "Invalid complaint", and explain rejection_reason.
+- The complaint belongs to the registered area: {area}. If the user mentions another area, still extract it only in specific_address if relevant, but do not change the official area.
+- specific_address should be extracted from the text. If no clear address or landmark is mentioned, return "Not specified".
 - confidence must be a number between 0 and 1.
 - icon_image_index must be the index of the best image to represent the complaint.
 - Image indexing starts from 0.
-- If images are irrelevant, use icon_image_index as 0.
+- If images are irrelevant or unclear, use icon_image_index as 0.
 - Do not include markdown.
 - Do not include explanation outside JSON.
 """
@@ -94,14 +100,9 @@ Rules:
         )
 
         text = response.text.strip()
+        text = text.replace("```json", "").replace("```", "").strip()
 
-        text = text.replace("```json", "")
-        text = text.replace("```", "")
-        text = text.strip()
-
-        ai_result = json.loads(text)
-
-        return ai_result
+        return json.loads(text)
 
     except Exception as e:
         print("Gemini analysis error:", repr(e))
