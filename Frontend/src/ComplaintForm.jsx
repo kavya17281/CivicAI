@@ -2,6 +2,7 @@ import { useState } from "react";
 import { auth } from "./firebase";
 
 export default function ComplaintForm({ onComplaintCreated }) {
+    const API_BASE_URL = import.meta.env.VITE_BACKEND_URL;
     const [complaintText, setComplaintText] = useState("");
     const [images, setImages] = useState([]);
 
@@ -46,7 +47,7 @@ export default function ComplaintForm({ onComplaintCreated }) {
                 formData.append("images", image);
             });
 
-            const response = await fetch("http://127.0.0.1:8000/complaints/", {
+            const response = await fetch(`${API_BASE_URL}/complaints/`, {
                 method: "POST",
                 headers: {
                     Authorization: `Bearer ${token}`

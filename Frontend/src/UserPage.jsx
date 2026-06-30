@@ -7,6 +7,7 @@ import ComplaintCard from "./ComplaintCard";
 const SEVERITY_ORDER = ["critical", "high", "medium", "low"];
 
 export default function UserPage({ user }) {
+    const API_BASE_URL = import.meta.env.VITE_BACKEND_URL;
     const [myComplaints, setMyComplaints] = useState([]);
     const [areaComplaints, setAreaComplaints] = useState([]);
     const [cityComplaints, setCityComplaints] = useState([]);
@@ -28,7 +29,7 @@ export default function UserPage({ user }) {
     async function fetchComplaints(endpoint, setter) {
         const token = await getToken();
 
-        const response = await fetch(`http://127.0.0.1:8000${endpoint}`, {
+        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
             headers: {
                 Authorization: `Bearer ${token}`
             }

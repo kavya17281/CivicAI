@@ -2,6 +2,7 @@ import { useState } from "react";
 import { auth } from "./firebase";
 
 export default function UserDashboard() {
+    const API_BASE_URL = import.meta.env.VITE_BACKEND_URL;
     const [complaints, setComplaints] = useState([]);
     const [loading, setLoading] = useState(false);
     const [output, setOutput] = useState("");
@@ -20,7 +21,7 @@ export default function UserDashboard() {
 
             const token = await user.getIdToken(true);
 
-            const response = await fetch("http://127.0.0.1:8000/complaints/my", {
+            const response = await fetch(`${API_BASE_URL}/complaints/my`, {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }
