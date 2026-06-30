@@ -12,4 +12,4 @@ node_modules/
 backend/uploads_temp/
 
 # Firebase credentials
-*.json
+Backend/firebase_key.json
