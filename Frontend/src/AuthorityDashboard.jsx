@@ -14,6 +14,7 @@ const STATUS_OPTIONS = [
 ];
 
 export default function AuthorityDashboard() {
+    const API_BASE_URL = import.meta.env.VITE_BACKEND_URL;
     const [complaints, setComplaints] = useState([]);
     const [dashboard, setDashboard] = useState(null);
 
